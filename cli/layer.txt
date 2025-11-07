@@ -1,0 +1,63 @@
+case Actions.GetSenderKey:
+        (async()=>{
+                const  msgToDecrypt=pending.getMessage()
+                const senderPubKeyB64 = json.Keys.Key;
+                const senderIdentityKeyb64 = json.Keys.Identity;
+                ///
+                
+                const jwkString= atob(senderIdentityKeyb64) 
+                const jwk = JSON.parse(jwkString);
+              const key = await importEcdsaP256PublicKeyJwk(jwk)
+             
+                ///
+                const senderPubKey = await importPublicKey(senderPubKeyB64);
+               // const senderIdentityKey = await importPublicKey(senderIdentityKeyb64);
+                //console.log(senderIdentityKey)
+               const myPreKey= keyStore.getNextPreKey()
+               const sharedSecret = await crypto.subtle.deriveKey(
+                                {
+                                  name: "ECDH",
+                                  public: senderPubKey,
+                                },
+                                myPreKey.privateKey,  // твой приватный ключ preKey
+                                {
+                                  name: "AES-GCM",
+                                  length: 256
+                                },
+                                false,
+                                ["encrypt", "decrypt"]
+                              );
+                const ciphertext = Uint8Array.from(atob(msgToDecrypt.Message), c => c.charCodeAt(0));
+                const iv = Uint8Array.from(atob(msgToDecrypt.Keys.Iv), c => c.charCodeAt(0));
+
+                const decrypted = await crypto.subtle.decrypt(
+                  {
+                    name: "AES-GCM",
+                    iv: iv
+                  },
+                  sharedSecret,
+                  ciphertext
+                );
+
+                const decodedMessage = new TextDecoder().decode(decrypted);
+                 
+
+               // console.log(msgToDecrypt)
+                const signature = Uint8Array.from(atob(msgToDecrypt.Keys.Signature), c => c.charCodeAt(0));
+             //   console.log(senderIdentityKey)
+                  const isValid = await crypto.subtle.verify(
+                    {
+                      name: "ECDSA",
+                      hash: { name: "SHA-256" },
+                    },
+                    key,
+                    signature,
+                    ciphertext
+                  );
+                 if (isValid){
+                     messagesDiv.innerHTML += `<p style="color: purple;">${json.To + ': ' + decodedMessage}</p>`;
+
+                 }
+                 clientes.setUser(json.To, sharedSecret)
+
+        })();
