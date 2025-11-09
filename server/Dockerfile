@@ -17,6 +17,7 @@ WORKDIR /app
 COPY --from=builder /app/main .
 
 RUN adduser -D appuser
+RUN chown -R appuser:appuser /app
 USER appuser
 
 CMD ["./main"]

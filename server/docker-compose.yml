@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  chat: 
+    build: .
+    volumes:
+      - .env:/app/.env
+    ports:
+      - "$PORT:$PORT"
+    
